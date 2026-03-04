@@ -8,66 +8,42 @@ TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
-@app.route("/")
+@app.route('/')
 def home():
-    return "Bot Running"
+    return "Bot is running"
 
-# Start command
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.reply_to(message, "Send any video link")
+    bot.reply_to(message, "Send video download or streaming link")
 
-# Detect video type
-def detect_video(url):
-
-    if ".mp4" in url:
-        return "mp4"
-
-    if ".m3u8" in url:
-        return "m3u8"
-
-    return "unknown"
-
-# Handle messages
 @bot.message_handler(func=lambda m: True)
-def handle_link(message):
+def download_video(message):
 
     url = message.text
 
-    video_type = detect_video(url)
-
-    if video_type == "mp4":
-
-        bot.reply_to(message,"Direct video detected")
+    try:
+        bot.reply_to(message, "Downloading video...")
 
         r = requests.get(url, stream=True)
 
-        with open("video.mp4","wb") as f:
+        filename = "video.mp4"
+
+        with open(filename, "wb") as f:
             for chunk in r.iter_content(1024):
                 if chunk:
                     f.write(chunk)
 
-        bot.send_video(message.chat.id, open("video.mp4","rb"))
+        bot.send_video(message.chat.id, open(filename, "rb"))
 
-    elif video_type == "m3u8":
-
-        bot.reply_to(message,"Streaming link detected")
-
-        bot.send_message(
-            message.chat.id,
-            f"Streaming Link:\n{url}"
-        )
-
-    else:
-
-        bot.reply_to(message,"Video not detected")
+    except:
+        bot.reply_to(message, "Invalid link")
 
 import threading
 
-def run():
+def run_bot():
     bot.infinity_polling()
 
-threading.Thread(target=run).start()
+threading.Thread(target=run_bot).start()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
